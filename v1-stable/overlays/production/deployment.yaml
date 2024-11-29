@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: demo-web
+        ports:
+        - containerPort: 8080
+          name: main-port
+        volumeMounts:
+        - name: green-html
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+      volumes:
+        - name: green-html
+          configMap:
+            name: index

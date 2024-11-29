@@ -1,0 +1,24 @@
+########################################
+#                                      #
+#           STABLE VERSION             #
+#                                      #
+########################################
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: demo
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: index
+    files:
+    - index.html
+
+commonLabels:
+  version: green
+
+namePrefix: green-
+patches:
+  - path: deployment.yaml

@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: routing-pipeline
+  namespace: demo
+
+spec:
+  params:
+    - name: svc_main
+    - name: svc_alter
+    - name: namespace
+    - name: route
+    - name: host
+    - name: port
+    - name: weight_main
+    - name: weight_alter
+  tasks:
+    - name: pull-scripts
+      taskRef:
+        resolver: cluster
+        params: 
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: URL
+          value: 'https://github.com/DuyAccel/demo-scripts.git'
+      workspaces:
+        - name: output
+          workspace: shared
+
+    - name: routing-traffic
+      taskRef:
+        resolver: cluster
+        params: 
+          - name: kind
+            value: task
+          - name: name
+            value: openshift-client
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: SCRIPT
+          value: |-
+            ./routing.sh --svc-main $(params.svc_main):$(params.weight_main) --svc-alter $(params.svc_alter):$(params.weight_alter) --route $(params.route) --host $(params.host) --port $(params.port) --namespace $(params.namespace)
+        - name: VERSION
+          value: latest
+      runAfter:
+        - pull-scripts
+      workspaces:
+        - name: manifest_dir
+          workspace: shared
+  workspaces:
+    - name: shared
+      optional: false
+
+---

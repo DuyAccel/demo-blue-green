@@ -1,0 +1,66 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: alert-listener
+  namespace: demo
+spec:
+  serviceAccountName: pipeline
+  triggers:
+    - name: cancel-deployment
+      interceptors: 
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.commonLabels.state == 'NotStable'"
+      bindings: 
+        - ref: bg-monitoring-binding
+        - name: weight_main
+          value: "100"
+        - name: weight_alter
+          value: "0"
+        - name: pipeline
+          value: cancel-deployment
+
+      template:
+        ref: blue-green-template
+
+    - name: split-route
+      interceptors: 
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.commonLabels.state == 'Ready'"
+      bindings: 
+        - ref: bg-monitoring-binding
+        - name: weight_main
+          value: "80"
+        - name: weight_alter
+          value: "20"
+        - name: pipeline
+          value: split-route
+
+      template:
+        ref: blue-green-template
+
+
+    - name: rollout
+      interceptors: 
+        - ref:
+            name: cel
+          params:
+            - name: filter
+              value: "body.commonLabels.state == 'Stable'"
+      bindings: 
+        - ref: bg-rollout-binding
+        - name: weight_main
+          value: "100" 
+        - name: weight_alter
+          value: "0"
+        - name: pipeline
+          value: rollout
+
+      template:
+        ref: blue-green-template
+--- 

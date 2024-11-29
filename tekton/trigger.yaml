@@ -1,0 +1,50 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: blue-green-template
+  namespace: demo
+spec:
+  params:
+    - name: svc_main
+    - name: svc_alter
+    - name: namespace
+    - name: route
+    - name: host
+    - name: port
+    - name: weight_main
+    - name: weight_alter
+    - name: pipeline
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: "$(tt.params.pipeline)-"
+        namespace: demo
+      spec:
+        params:
+          - name: svc_main
+            value: $(tt.params.svc_main)
+          - name: svc_alter
+            value: $(tt.params.svc_alter)
+          - name: namespace
+            value: $(tt.params.namespace)
+          - name: route
+            value: $(tt.params.route)
+          - name: host
+            value: $(tt.params.host)
+          - name: port
+            value: $(tt.params.port)
+          - name: weight_main 
+            value: $(tt.params.weight_main)
+          - name: weight_alter
+            value: $(tt.params.weight_alter)
+
+        pipelineRef:
+          name: routing-pipeline
+        workspaces:
+          - name: shared
+            persistentVolumeClaim:
+              claimName: demo
+
+        #        serviceAccountName: route-editor
+--- 

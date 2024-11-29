@@ -1,0 +1,44 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: bg-monitoring-binding
+  namespace: demo
+spec:
+  params:
+    # MAIN = CURRENT-VERSION
+  - name: svc_main
+    value: $(body.commonLabels.curr_version)
+  - name: svc_alter
+    value: $(body.commonLabels.new_version)
+  - name: namespace
+    value: $(body.commonLabels.namespace)
+  - name: host 
+    value: $(body.commonLabels.host)
+  - name: route
+    value: $(body.commonLabels.route)
+  - name: port
+    value: main
+      #    value: $(body.commonLabels.port)
+
+---
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: bg-rollout-binding
+  namespace: demo
+spec:
+  params:
+    # MAIN = NEW-VERSION
+  - name: svc_main
+    value: $(body.commonLabels.new_version)
+  - name: svc_alter
+    value: $(body.commonLabels.curr_version)
+  - name: namespace
+    value: $(body.commonLabels.namespace)
+  - name: route
+    value: $(body.commonLabels.route)
+  - name: host 
+    value: $(body.commonLabels.host)
+  - name: port
+    value: main
+---
