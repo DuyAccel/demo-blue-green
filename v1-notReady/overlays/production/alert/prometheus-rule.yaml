@@ -15,7 +15,7 @@ spec:
           expr: kube_deployment_status_replicas_unavailable{deployment='{{ .NewVersion }}'} > 0
           labels:
             severity: critical
-            namespace: demo
+            namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
             state: NotReady
@@ -36,7 +36,7 @@ spec:
             on (namespace) absent_over_time(ALERTS{state='NotReady'} [1m]) > 0
           labels:
             severity: warning 
-            namespace: demo
+            namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
             state: Ready
@@ -53,7 +53,7 @@ spec:
           expr: avg(container_cpu_usage_seconds_total{pod=~"{{ .NewVersion }}.*"}) > 2
           labels:
             severity: critical
-            namespace: demo
+            namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
             state: NotStable
@@ -71,7 +71,7 @@ spec:
           expr: avg(container_memory_working_set_bytes{pod=~"{{ .NewVersion }}.*"})/(2^20) > 20
           labels:
             severity: critical
-            namespace: demo
+            namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
             state: NotStable
@@ -89,7 +89,7 @@ spec:
           expr: avg(rate(haproxy_backend_http_responses_total{code!='200', proxy=~'.*{{ .NewVersion }}.*'}[1m])) > 0.2
           labels:
             severity: critical
-            namespace: demo
+            namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
             state: NotStable
@@ -109,7 +109,7 @@ spec:
             on (namespace) absent_over_time(ALERTS{severity='critical', new_version='{{ .NewVersion }}'}[1m]) > 0
           labels:
             severity: warning
-            namespace: demo
+            namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
             state: Stable
