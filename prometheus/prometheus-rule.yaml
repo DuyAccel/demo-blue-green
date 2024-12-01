@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: demo-rules
-  namespace: demo
+  namespace: {{ .Namespace }}
   labels:
     app: demo
     release: base
@@ -56,7 +56,7 @@ spec:
             namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
-            state: NotStable
+            state: NotReady
             route: {{ .Route }}
             host: {{ .Host }}
           annotations:
@@ -74,7 +74,7 @@ spec:
             namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
-            state: NotStable
+            state: NotReady
             route: {{ .Route }}
             host: {{ .Host }}
           annotations:
@@ -92,7 +92,7 @@ spec:
             namespace: {{ .Namespace }}
             curr_version: {{ .OldVersion }}
             new_version: {{ .NewVersion }}
-            state: NotStable
+            state: NotReady
             route: {{ .Route }}
             host: {{ .Host }}
           annotations:
@@ -102,8 +102,28 @@ spec:
               This behavior is not desire-statge and may lead to problems.
               Rollback event will be trigger to cancel the GREEN deployment.
 
-        - alert: StableDeployment
-          for:  1m
+        - alert: CancelDeployment
+          for: 2s
+          expr: |-
+            openshift_route_info{route='{{ .Route }}', to_name='{{ .OldVersion }}', to_weight=~'.0'} *
+            on (namespace) count(ALERTS{severity='critical', new_version='{{ .NewVersion }}'}) > 0
+          labels:
+            severity: warning
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: notStable
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: .
+            message: |-
+              The deployment is not stable for rollout process. 
+              Rollback to previous version.
+              
+
+        - alert: RolloutDeployment
+          for: 30s
           expr: |-
             openshift_route_info{route='{{ .Route }}', to_name='{{ .OldVersion }}', to_weight=~'.0'} *
             on (namespace) absent_over_time(ALERTS{severity='critical', new_version='{{ .NewVersion }}'}[1m]) > 0

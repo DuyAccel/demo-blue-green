@@ -7,15 +7,25 @@ metadata:
 spec:
   route:
     groupBy: [namespace, state]
+    groupWait: 2s
     groupInterval: 1m
     repeatInterval: 1m
-    receiver: 'cluster-listener'
+    receiver: 'admin-dummy'
+    routes:
+      - matchers:
+          - name: state
+            matchType: '=~'
+            value: 'Ready|NotStable|Stable'
+        receiver: 'cluster-listener'
 
   receivers:
     - name: cluster-listener
       webhookConfigs:
-        - url: https://webhook.site/26ff7b8c-0bb2-4c22-b7a2-d3507f8cdcb1
-          sendResolved: false
         - url: http://el-alert-listener.demo.svc.cluster.local:8080
+          sendResolved: false
+
+    - name: admin-dummy
+      webhookConfigs:
+        - url: https://webhook.site/26ff7b8c-0bb2-4c22-b7a2-d3507f8cdcb1
           sendResolved: false
 ---
