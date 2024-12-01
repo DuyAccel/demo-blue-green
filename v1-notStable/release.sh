@@ -1,14 +1,13 @@
 #!/bin/sh
+export $(cat .env | xargs)
 
-VERSION='new/code-404'
-NEW_DEPLOY='green-demo'
-OLD_DEPLOY='demo'
+oc apply -k overlays/production
 
-
-sed -i -e "s|{{VERSION}}|${VERSION}|" \
-  -e "s|{{NEW_DEPLOY}}|${NEW_DEPLOY}|" \
-  -e "s|{{OLD_DEPLOY}}|${OLD_DEPLOY}|" \
-  overlays/production/alert/prometheus-rule.yaml
-
-kubectl apply -k overlays/production
-kubectl apply -f overlays/production/alert
+for f in $(ls overlays/production/alert); do 
+  sed -e "s|{{ .NewVersion }}|$NEW_VERSION|g" \
+    -e "s|{{ .OldVersion }}|$OLD_VERSION|g" \
+    -e "s|{{ .NewDeploy }}|$NEW_DEPLOY|g" \
+    -e "s|{{ .OldDeploy }}|$OLD_DEPLOY|g" \
+    -e "s|{{ .Route }}|$ROUTE|g" \
+    overlays/production/alert/"$f" | oc apply -f -
+done 

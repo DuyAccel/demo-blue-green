@@ -3,12 +3,10 @@ kind: AlertmanagerConfig
 metadata:
   name: demo-alert
   namespace: demo
-  labels:
-    app.kubernetes.io/managed-by=prometheus-operator
 
 spec:
   route:
-    groupBy: [namespace]
+    groupBy: [namespace, state]
     groupInterval: 1m
     repeatInterval: 1m
     receiver: 'cluster-listener'
@@ -18,6 +16,6 @@ spec:
       webhookConfigs:
         - url: https://webhook.site/26ff7b8c-0bb2-4c22-b7a2-d3507f8cdcb1
           sendResolved: false
-        - url: http://el-alert-listener.duyaccel-dev.svc.cluster.local:8080
+        - url: http://el-alert-listener.demo.svc.cluster.local:8080
           sendResolved: false
 ---
