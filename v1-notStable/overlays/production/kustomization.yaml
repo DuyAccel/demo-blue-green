@@ -1,0 +1,29 @@
+########################################
+#                                      #
+#        WEBSITE 404 NOT FOUND         #
+#                                      #
+########################################
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: duyaccel-dev
+resources:
+  - ../../base
+
+namePrefix: green-
+
+images:
+  - name: nginxinc/nginx-unprivileged
+    newName: duyaccel/stress
+    newTag: web.12112024.22h.20p
+
+
+#patches:
+#  - target:
+#      kind: Deployment 
+#      name: demo-deploy 
+#    path: |-
+#      - op: replace
+#        path: /spec/template/spec/containers/0/ports/0/containerPort:
+#        value: 80

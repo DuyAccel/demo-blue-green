@@ -1,0 +1,124 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: demo-rules
+  namespace: demo
+  labels:
+    app: demo
+    release: base
+spec:
+  groups:
+    - name: Blue/Green monitoring
+      rules:
+        - alert: DeploymentFailedToInit
+          for: 30s
+          expr: kube_deployment_status_replicas_unavailable{deployment='{{ .NewVersion }}'} > 0
+          labels:
+            severity: critical
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: NotReady
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: Canceling GREEN deployment.
+            message: |-
+              Too many pod are not ready.
+              This behavior is not desire-statge and may lead to problems.
+              Rollback event will be trigger to cancel the GREEN deployment.
+
+
+        - alert: RouteTrafficToGreen 
+          for: 2s
+          expr: |-
+            openshift_route_info{route='{{ .Route }}', to_name='{{ .OldVersion }}', to_weight='100'} *
+            on (namespace) absent_over_time(ALERTS{state='NotReady'} [1m]) > 0
+          labels:
+            severity: warning 
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: Ready
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: Starting route traffic to GREEN deployment
+            message: |-
+              Green Deployment was successfully initialized.
+              System will move to the next step and perform share traffic for this deployment.
+
+        - alert: ContainersUsingTooMuchCPU
+          for: 30s
+          expr: avg(container_cpu_usage_seconds_total{pod=~"{{ .NewVersion }}.*"}) > 2
+          labels:
+            severity: critical
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: NotStable
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: Canceling GREEN deployment.
+            message: |-
+              Containers is using too much CPU resource. 
+              This behavior is not desire-statge and may lead to problems.
+              Rollback event will be trigger to cancel the GREEN deployment.
+
+        - alert: ContainersUsingTooMuchMemory
+          for: 30s
+          expr: avg(container_memory_working_set_bytes{pod=~"{{ .NewVersion }}.*"})/(2^20) > 20
+          labels:
+            severity: critical
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: NotStable
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: Canceling GREEN deployment.
+            message: |-
+              Containers is using too much Memory resource. 
+              This behavior is not desire-statge and may lead to problems.
+              Rollback event will be trigger to cancel the GREEN deployment.
+
+        - alert: HttpResponseFailed
+          for: 30s
+          expr: avg(rate(haproxy_backend_http_responses_total{code!='200', proxy=~'.*{{ .NewVersion }}.*'}[1m])) > 0.2
+          labels:
+            severity: critical
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: NotStable
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: Canceling GREEN deployment.
+            message: |-
+              Spotted too many failure respone in a short term
+              This behavior is not desire-statge and may lead to problems.
+              Rollback event will be trigger to cancel the GREEN deployment.
+
+        - alert: StableDeployment
+          for:  1m
+          expr: |-
+            openshift_route_info{route='{{ .Route }}', to_name='{{ .OldVersion }}', to_weight=~'.0'} *
+            on (namespace) absent_over_time(ALERTS{severity='critical', new_version='{{ .NewVersion }}'}[1m]) > 0
+          labels:
+            severity: warning
+            namespace: {{ .Namespace }}
+            curr_version: {{ .OldVersion }}
+            new_version: {{ .NewVersion }}
+            state: Stable
+            route: {{ .Route }}
+            host: {{ .Host }}
+          annotations:
+            summary: Routing traffic to GREEN deployment.
+            message: |-
+              The system was stable for a long time. This is what we desired.
+              Routing traffic event will be trigger to rollout new version.
+
+---
